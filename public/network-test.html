@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CMP independent network test</title>
+    <script src="https://www.cdn.privado.ai/7626fc4238f14e16bc7fe8d36c1d2e60.js" type="text/javascript"></script>
+    <script>
+      // Runs independently of droppingcookie.js and its category mapping.
+      window.networkTest = { runs: [] };
+      window.runNetworkTest = function (stage) {
+        const run = { stage: stage, id: Date.now() + '-' + Math.random().toString(36).slice(2, 9) };
+        const base = 'https://httpbin.org/anything';
+        const url = function (kind) {
+          return base + '?cmp_test=' + encodeURIComponent(kind) + '&run=' + encodeURIComponent(run.id);
+        };
+        window.networkTest.runs.push(run);
+
+        try {
+          run.fetch = 'started';
+          fetch(url('fetch'), { mode: 'no-cors', cache: 'no-store' })
+            .then(function (response) { run.fetch = 'response: ' + response.type; })
+            .catch(function (error) { run.fetch = 'error: ' + error.message; });
+        } catch (error) { run.fetch = 'error: ' + error.message; }
+
+        try {
+          const xhr = new XMLHttpRequest();
+          xhr.open('GET', url('xhr'));
+          xhr.onload = function () { run.xhr = 'response status: ' + xhr.status; };
+          xhr.onerror = function () { run.xhr = 'network or CORS error; check Network'; };
+          xhr.onabort = function () { run.xhr = 'aborted; check Network'; };
+          run.xhr = 'started';
+          xhr.send();
+        } catch (error) { run.xhr = 'error: ' + error.message; }
+
+        try {
+          run.beacon = navigator.sendBeacon(url('beacon'), 'cmp network test')
+            ? 'queued (delivery not confirmed)' : 'not queued';
+        } catch (error) { run.beacon = 'error: ' + error.message; }
+
+        console.info('[CMP network test]', run.id, stage);
+        return run.id;
+      };
+      window.runNetworkTest('page load');
+    </script>
+  </head>
+  <body>
+    <h1>CMP independent network test</h1>
+    <p>The HTML image and three requests start automatically on page load, independently of the marketing script.</p>
+    <p>Open DevTools → Network, enable Preserve log, and filter for <code>httpbin.org</code>. Inspect the requests and their status; this page cannot confirm that the server received them.</p>
+    <p>The HTML image below requests an external image. It is rendered at 1 × 1 pixels:</p>
+    <img src="https://httpbin.org/image/png?cmp_test=html-image" width="1" height="1" alt="">
+    <p><button type="button" id="run-again">Run fetch, XHR and beacon again</button>
+      <button type="button" id="run-image">Request another image</button>
+      <button type="button" id="cookie-settings">Open cookie settings</button></p>
+    <p>Use the buttons after accepting or withdrawing consent without reloading. Each request contains a run ID for finding it in Network.</p>
+    <pre id="results">Waiting for the test script...</pre>
+    <p><a href="/">Back to the script and cookie test</a></p>
+    <script>
+      document.getElementById('run-again').addEventListener('click', function () {
+        window.runNetworkTest('button click');
+      });
+      document.getElementById('run-image').addEventListener('click', function () {
+        const id = Date.now() + '-' + Math.random().toString(36).slice(2, 9);
+        const image = new Image(1, 1);
+        image.alt = '';
+        image.src = 'https://httpbin.org/image/png?cmp_test=dynamic-image&run=' + encodeURIComponent(id);
+        document.body.appendChild(image);
+        window.networkTest.runs.push({ stage: 'button click', id: id, image: 'requested; check Network' });
+      });
+      document.getElementById('cookie-settings').addEventListener('click', function () {
+        document.dispatchEvent(new Event('changeConsent'));
+      });
+      function renderNetworkResults() {
+        document.getElementById('results').textContent = JSON.stringify(window.networkTest, null, 2);
+      }
+      renderNetworkResults();
+      window.setInterval(renderNetworkResults, 1000);
+    </script>
+  </body>
+</html>

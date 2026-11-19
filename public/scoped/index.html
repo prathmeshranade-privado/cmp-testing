@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Scoped cookie inspector</title>
+  </head>
+  <body>
+    <h1>Scoped cookie inspector</h1>
+    <p>This page is under <code>/scoped</code>, so browser-readable cookies with <code>Path=/scoped</code> appear below.</p>
+    <pre id="cookies">Loading…</pre>
+    <p><a href="/">Return to the CMP test</a></p>
+    <script>
+      document.getElementById("cookies").textContent = document.cookie || "No browser-readable cookies at this path.";
+    </script>
+  </body>
+</html>

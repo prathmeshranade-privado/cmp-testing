@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Privado CMP timing test</title>
+
+    <!--
+      Keep the CMP first and load it only once. Before this page is used as a
+      valid CMP test, replace this with the script issued for this Netlify test
+      domain (not a script issued for another website).
+    -->
+    <script src="https://www.cdn.privado.ai/7626fc4238f14e16bc7fe8d36c1d2e60.js" type="text/javascript"></script>
+
+    <!--
+      This remains a live, normal script. The custom category attribute makes
+      current CMP code treat it as Marketing/Targeting (C002) during its scan.
+      Do not make the type "javascript/privado-block" for this timing test.
+    -->
+    <script
+      id="marketing-test-script"
+      src="/droppingcookie.js"
+      type="text/javascript"
+      privado-cookie-category="C002">
+    </script>
+  </head>
+  <body>
+    <h1>Privado CMP timing test</h1>
+    <p>Open DevTools before loading this page. The panel refreshes every second.</p>
+    <p><a href="/network-test.html">Test independent image, fetch, XHR and beacon requests</a></p>
+    <p><a href="/scoped/">Inspect scoped-path cookies</a></p>
+    <pre id="result">Waiting for DOMContentLoaded…</pre>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const renderResult = () => {
+          const tracker = document.getElementById("marketing-test-script");
+          const storedRunId = localStorage.getItem("marketing_storage_test");
+          const heartbeatText = localStorage.getItem("marketing_tracker_heartbeat");
+          let heartbeat = null;
+
+          try {
+            heartbeat = heartbeatText ? JSON.parse(heartbeatText) : null;
+          } catch (_) {}
+
+          const result = {
+            marketingScriptRan: window.marketingScriptRan === true,
+            marketingScriptRunId: window.marketingScriptRunId || null,
+            documentReadyState: document.readyState,
+            scriptType: tracker.getAttribute("type"),
+            rootClientCookiePresent: document.cookie.includes("marketing_client_test=1"),
+            rootServerCookiePresent: document.cookie.includes("marketing_server_test=1"),
+            domainCookiePresent: document.cookie.includes("marketing_domain_test=1"),
+            scopedCookieVisibleAtRoot: document.cookie.includes("marketing_path_test=1"),
+            localStorageWrittenThisLoad:
+              window.marketingScriptRunId !== undefined &&
+              storedRunId === window.marketingScriptRunId,
+            trackerTimerActive: window.marketingTrackerTimerId !== undefined,
+            heartbeat,
+            heartbeatWrittenThisLoad:
+              heartbeat !== null && heartbeat.runId === window.marketingScriptRunId
+          };
+
+          document.getElementById("result").textContent = JSON.stringify(result, null, 2);
+        };
+
+        renderResult();
+        window.setInterval(renderResult, 1000);
+      });
+    </script>
+  </body>
+</html>
